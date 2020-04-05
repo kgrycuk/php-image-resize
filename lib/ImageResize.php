@@ -773,4 +773,47 @@ class ImageResize
 
         return $this;
     }
+
+
+    /**
+     * This is a memory friendly method to check if there is transparency in a png file
+     * There are some edge cases in which it fails but ¯\_(ツ)_/¯
+     * https://stackoverflow.com/questions/5495275/how-to-check-if-an-image-has-transparency-using-gd
+     *
+     * @param string $filename
+     * @return bool
+     */
+    public static function IsTransparentPng($filename){
+        //32-bit pngs
+        //4 checks for greyscale + alpha and RGB + alpha
+        if ((ord(file_get_contents($filename, false, null, 25, 1)) & 4)>0){
+            return true;
+        }
+        //8 bit pngs
+        $fd=fopen($filename, 'r');
+        $continue=true;
+        $plte=false;
+        $trns=false;
+        $idat=false;
+        while($continue===true){
+            $continue=false;
+            $line=fread($fd, 1024);
+            if ($plte===false){
+                $plte=(stripos($line, 'PLTE')!==false);
+            }
+            if ($trns===false){
+                $trns=(stripos($line, 'tRNS')!==false);
+            }
+            if ($idat===false){
+                $idat=(stripos($line, 'IDAT')!==false);
+            }
+            if ($idat===false and !($plte===true and $trns===true)){
+                $continue=true;
+            }
+        }
+        fclose($fd);
+        return ($plte===true and $trns===true);
+    }
+
+
 }
